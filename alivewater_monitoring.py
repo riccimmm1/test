@@ -58,28 +58,17 @@ def save_data(data):
         json.dump(data, f)
 
 def init_browser():
+    from selenium.webdriver.firefox.options import Options
+    
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--remote-debugging-port=9222")
     
-    # Добавляем параметры для решения проблемы с DevToolsActivePort
-    options.add_argument("--disable-extensions")
-    options.add_argument("--disable-infobars")
-    options.add_argument("--disable-browser-side-navigation")
-    options.add_argument("--disable-features=VizDisplayCompositor")
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option("useAutomationExtension", False)
+    # Путь к Firefox в Termux
+    options.binary_location = "/data/data/com.termux/files/usr/bin/firefox"
     
-    # Для GitHub Actions
-    options.binary_location = "/usr/bin/chromium-browser"
-    
-    # Используем системный chromedriver
-    service = Service(executable_path="/usr/bin/chromedriver")
-    driver = webdriver.Chrome(service=service, options=options)
+    driver = webdriver.Firefox(options=options)
     driver.implicitly_wait(10)
     return driver
 
