@@ -1,10 +1,14 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
-# Установка Chrome и зависимостей
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    chromium \
-    chromium-driver \
+# Установка Chrome (через официальный репозиторий Google)
+RUN apt-get update && apt-get install -y \
+    gnupg \
+    curl \
+    && curl -sSL https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y \
+    google-chrome-stable \
     fonts-ipafont \
     libglib2.0-0 \
     libnss3 \
@@ -22,26 +26,19 @@ RUN apt-get update && \
     libxtst6 \
     && rm -rf /var/lib/apt/lists/*
 
-# Симлинки для совместимости
-RUN ln -s /usr/bin/chromium /usr/bin/chromium-browser
+# Настройка Chrome для работы в headless-режиме
+ENV CHROME_BIN=/usr/bin/google-chrome
+ENV CHROME_PATH=/usr/lib/chromium-browser/
 
 # Рабочая директория
 WORKDIR /app
 
-# Копируем зависимости и устанавливаем
+# Копируем зависимости
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем основной скрипт
 COPY alivewater_monitoring.py .
 
-# Точка монтирования для данных
-VOLUME /app/data
-
-# Переменные среды
-ENV TELEGRAM_TOKEN=""
-ENV LOGIN=""
-ENV PASSWORD=""
-
-# Команда запуска
+# Точка входа
 CMD ["python", "alivewater_monitoring.py"]
