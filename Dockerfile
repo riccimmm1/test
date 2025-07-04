@@ -1,44 +1,39 @@
-FROM python:3.11-slim-bookworm
+FROM python:3.9-slim-bullseye
 
-# Установка Chrome (через официальный репозиторий Google)
+# Установка системных зависимостей и Chrome
 RUN apt-get update && apt-get install -y \
+    wget \
     gnupg \
-    curl \
-    && curl -sSL https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
     && apt-get install -y \
     google-chrome-stable \
-    fonts-ipafont \
-    libglib2.0-0 \
-    libnss3 \
-    libx11-6 \
-    libxcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libxrandr2 \
-    libxrender1 \
+    fonts-ipafont-gothic \
+    fonts-wqy-zenhei \
+    fonts-thai-tlwg \
+    fonts-khmeros \
+    fonts-freefont-ttf \
     libxss1 \
-    libxtst6 \
+    --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Настройка Chrome для работы в headless-режиме
-ENV CHROME_BIN=/usr/bin/google-chrome
-ENV CHROME_PATH=/usr/lib/chromium-browser/
+# Установка Chromedriver
+RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}') \
+    && CHROME_MAJOR=${CHROME_VERSION%.*} \
+    && CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAJOR") \
+    && wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip" \
+    && unzip chromedriver_linux64.zip \
+    && mv chromedriver /usr/bin/chromedriver \
+    && chmod +x /usr/bin/chromedriver \
+    && rm chromedriver_linux64.zip
 
-# Рабочая директория
+# Настройка рабочей директории
 WORKDIR /app
+COPY . .
 
-# Копируем зависимости
-COPY requirements.txt .
+# Установка Python-зависимостей
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем основной скрипт
-COPY alivewater_monitoring.py .
-
-# Точка входа
-CMD ["python", "alivewater_monitoring.py"]
+# Запуск приложения
+CMD ["python", "main.py"]
